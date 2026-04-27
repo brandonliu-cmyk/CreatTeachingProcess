@@ -122,6 +122,15 @@
         },
         { id: 't_agent', name: '智能体', icon: 'AI', color: 'from-indigo-500 to-indigo-600' },
         { id: 't_dictation', name: '听写', icon: 'DICTATION', color: 'from-pink-500 to-pink-600' },
+        { 
+          id: 't_oral', name: '口语老师', icon: 'TEACHER', color: 'from-indigo-500 to-indigo-600',
+          options: [
+            { subId: 'oral_word', name: '单词评测' },
+            { subId: 'oral_dialog', name: '对话评测' },
+            { subId: 'oral_corpus', name: '语料生成' },
+            { subId: 'oral_scene', name: '场景对话' }
+          ]
+        },
         { id: 't_test', name: '随堂测', icon: 'TEST', color: 'from-emerald-500 to-emerald-600' },
         { id: 't_school', name: '校本资源', icon: 'DOCS', color: 'from-orange-500 to-orange-600' }
       ],
@@ -213,6 +222,12 @@
     };
 
     // ─── 课程目录（Mock）：按「教材版本 + 年级册别」切换 ───────────────────────
+    const SUBJECTS = [
+      { id: 'chinese', name: '语文' },
+      { id: 'math', name: '数学' },
+      { id: 'english', name: '英语' },
+    ];
+
     const TEXTBOOK_VERSIONS = [
       { id: 'bb', name: '部编版（统编）' },
       { id: 'rj', name: '人教版' },
@@ -413,6 +428,7 @@
       GRID: (props) => <svg viewBox="0 0 24 24" fill="currentColor" className={props.className || "w-5 h-5"} {...props}><path d="M3 3h8v8H3V3zm0 10h8v8H3v-8zm10-10h8v8h-8V3zm0 10h8v8h-8v-8z"/></svg>,
       LAYERS: (props) => <svg viewBox="0 0 24 24" fill="currentColor" className={props.className || "w-5 h-5"} {...props}><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg>,
       AVATAR: (props) => <svg viewBox="0 0 24 24" fill="currentColor" className={props.className || "w-6 h-6"} {...props}><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>,
+      TEACHER: (props) => <svg viewBox="0 0 24 24" fill="currentColor" className={props.className || "w-5 h-5"} {...props}><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-15a3 3 0 100 6 3 3 0 000-6zm0 13c-2.67 0-8 1.34-8 4v1h16v-1c0-2.66-5.33-4-8-4z"/></svg>,
       BELL: (props) => <svg viewBox="0 0 24 24" fill="currentColor" className={props.className || "w-5 h-5"} {...props}><path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 002 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>,
       MENU: (props) => <svg viewBox="0 0 24 24" fill="currentColor" className={props.className || "w-6 h-6"} {...props}><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>,
       HOME: (props) => <svg viewBox="0 0 24 24" fill="currentColor" className={props.className || "w-5 h-5"} {...props}><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>,
@@ -1282,7 +1298,7 @@
     }
 
     // ─── STEP 2: 课中授课 ───────────────────────────────────────────────
-    function StepInClass({ selectedTools, setSelectedTools, wizardMode, onNextStep, generationStatus, setGenerationStatus }) {
+    function StepInClass({ selectedTools, setSelectedTools, wizardMode, onNextStep, generationStatus, setGenerationStatus, catalogSubject }) {
       const planA = ['t_ppt', 't_test'];
       const planB = ['t_ppt', 'act_template', 'act_lottery', 't_test'];
       const [selectedPlan, setSelectedPlan] = useState(null);
@@ -1481,6 +1497,8 @@
             input.click();
         } else if (mode === 'config') {
             handleOpenToolPreview(instanceId, toolId, 'config');
+        } else if (mode === 'new_tab') {
+            handleOpenToolPreview(instanceId, toolId, 'new_tab');
         }
       };
 
@@ -1576,6 +1594,30 @@
           }
           return;
         }
+        if (originalToolId === 't_oral') {
+          window.open('img/口语老师预览.png', '_blank');
+          return;
+        }
+        if (originalToolId === 'oral_word' && mode === 'config') {
+          setPreviewModalData({ toolId: originalToolId, status, instanceId: uniqueId, mode });
+          return;
+        }
+        if (originalToolId === 'oral_dialog' && mode === 'config') {
+          setPreviewModalData({ toolId: originalToolId, status, instanceId: uniqueId, mode });
+          return;
+        }
+        if (originalToolId === 'oral_scene' && mode === 'config') {
+          setPreviewModalData({ toolId: originalToolId, status, instanceId: uniqueId, mode });
+          return;
+        }
+        if (originalToolId === 'oral_corpus' && mode === 'new_tab') {
+          window.open('img/单词评测配置.png', '_blank');
+          return;
+        }
+        if (originalToolId.startsWith('oral_') && !mode) {
+          window.open('img/口语老师预览.png', '_blank');
+          return;
+        }
         setPreviewModalData({
           toolId: originalToolId,
           status,
@@ -1605,7 +1647,7 @@
             <div className="flex flex-col gap-4 mb-6 flex-shrink-0">
               {/* 工具添加/选择栏 */}
               <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex items-center gap-4">
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1 pl-1">
+                <div className="flex items-center gap-1.5 flex-1 pl-1 flex-wrap">
                   {[
                     {
                       id: 't_lesson_plan', label: '添加教案', icon: 'DOC', color: 'from-cyan-500 to-cyan-600',
@@ -1648,9 +1690,20 @@
                     },
                     {
                       id: 't_dictation', label: '添加听写', icon: 'DICTATION', color: 'from-pink-500 to-pink-600',
+                      hidden: catalogSubject === 'math',
                       options: [
                         { subId: 'dict_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
                         { subId: 'dict_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                      ]
+                    },
+                    {
+                      id: 't_oral', label: '口语训练', icon: 'TEACHER', color: 'from-indigo-500 to-indigo-600',
+                      hidden: catalogSubject !== 'english',
+                      options: [
+                        { subId: 'oral_word', name: '单词评测' },
+                        { subId: 'oral_dialog', name: '对话评测' },
+                        { subId: 'oral_corpus', name: '语料生成' },
+                        { subId: 'oral_scene', name: '场景对话' }
                       ]
                     },
                     {
@@ -1661,7 +1714,7 @@
                       ]
                     },
                     { id: 't_school', label: '添加校本资源', icon: 'DOCS', color: 'from-orange-500 to-orange-600', action: () => { setPreviewModalData({ toolId: 't_school', status: 'completed' }); setOpenDropdown(null); } },
-                  ].map(item => {
+                  ].filter(item => !item.hidden).map(item => {
                     const hasOptions = !!(item.options && item.options.length);
                     const isActive = openDropdown === item.id;
 
@@ -1677,7 +1730,7 @@
                               item.action();
                             }
                           }}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors whitespace-nowrap border ${
+                          className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap border ${
                             isActive
                               ? `border-transparent bg-gradient-to-r ${item.color} text-white shadow-sm`
                               : `border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:border-gray-300`
@@ -1753,9 +1806,40 @@
                     },
                     {
                       id: 't_dictation',
+                      hidden: catalogSubject === 'math',
                       options: [
                         { subId: 'dict_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
                         { subId: 'dict_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                      ]
+                    },
+                    {
+                      id: 't_oral',
+                      hidden: catalogSubject !== 'english',
+                      options: [
+                        { 
+                          subId: 'oral_word', name: '单词评测', icon: <Icons.MIC className="w-3.5 h-3.5" />,
+                          subOptions: [
+                            { name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
+                            { name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> }
+                          ]
+                        },
+                        { 
+                          subId: 'oral_dialog', name: '对话评测', icon: <Icons.MIC className="w-3.5 h-3.5" />,
+                          subOptions: [
+                            { name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
+                            { name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> }
+                          ]
+                        },
+                        { 
+                          subId: 'oral_corpus', name: '语料生成', mode: 'new_tab', icon: <Icons.DOCS className="w-3.5 h-3.5" />
+                        },
+                        { 
+                          subId: 'oral_scene', name: '场景对话', icon: <Icons.MIC className="w-3.5 h-3.5" />,
+                          subOptions: [
+                            { name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
+                            { name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> }
+                          ]
+                        }
                       ]
                     },
                     {
@@ -1797,7 +1881,7 @@
                         }
                       ]
                     },
-                  ];
+                  ].filter(i => !i.hidden);
                   const current = items.find(i => i.id === openDropdown);
                   if (!current) return null;
                   
@@ -1889,7 +1973,7 @@
                       { label: '共享', icon: <Icons.SEND className="w-3.5 h-3.5" />, action: () => alert('共享功能开发中...') },
                       { label: '删除', icon: <Icons.CLOSE className="w-3.5 h-3.5" />, action: () => removeTool(targetTool.uniqueId), danger: true },
                     ];
-                  } else if (toolId === 't_dictation') {
+                  } else if (toolId === 't_dictation' || toolId === 't_oral') {
                     menuItems = [
                       { label: '编辑', icon: <Icons.EDIT className="w-3.5 h-3.5" />, action: () => handleOpenToolPreview(targetTool.uniqueId, targetTool.id, 'config') },
                       { label: '共享', icon: <Icons.SEND className="w-3.5 h-3.5" />, action: () => alert('共享功能开发中...') },
@@ -1998,6 +2082,7 @@
                                 if (id === 't_agent') return '智能体';
                                 if (id === 't_test') return '随堂测';
                                 if (id === 't_dictation') return '听写';
+                                if (id === 't_oral' || id.startsWith('oral_')) return '口语训练';
                                 return '工具';
                               })()}
                           </span>
@@ -2207,10 +2292,22 @@
                       <h3 className="text-lg font-bold text-gray-800">全部课中工具 <span className="text-sm font-normal text-gray-500 ml-2">(可多选)</span></h3>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {MOCK_DATA.inClassTools.flatMap(t => 
-                        t.options ? t.options.map(o => ({...o, parentName: t.name, icon: t.icon, color: t.color})) 
-                                  : [{ id: t.id, subId: t.id, name: t.name, parentName: null, icon: t.icon, color: t.color }]
-                      ).filter(tool => tool.id !== 't_school').map(tool => {
+                      {MOCK_DATA.inClassTools.flatMap(t => {
+                        if (t.id === 't_oral') {
+                          return [{ id: t.id, subId: t.id, name: t.name, parentName: null, icon: t.icon, color: t.color }];
+                        }
+                        return t.options ? t.options.map(o => ({...o, parentName: t.name, icon: t.icon, color: t.color})) 
+                                  : [{ id: t.id, subId: t.id, name: t.name, parentName: null, icon: t.icon, color: t.color }];
+                      }).filter(tool => {
+                        if (tool.id === 't_school') return false;
+                        if (tool.subId === 'dict_ai' || tool.subId === 'dict_config') {
+                          return catalogSubject !== 'math';
+                        }
+                        if (tool.subId === 't_oral') {
+                          return catalogSubject === 'english';
+                        }
+                        return true;
+                      }).map(tool => {
                         const isSelected = modalSelectedTools.includes(tool.subId);
                         return (
                           <div
@@ -2470,7 +2567,7 @@
           {previewModalData && ReactDOM.createPortal(
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 animate-in fade-in duration-200">
               <div className={`flex flex-col animate-in zoom-in-95 duration-200 relative ${
-                ['act_template', 'act_ai', 'act_lottery', 't_agent', 't_school', 't_dictation'].includes(previewModalData.toolId) || (previewModalData.toolId === 't_learning_plan' && previewModalData.status === 'completed')
+                ['act_template', 'act_ai', 'act_lottery', 't_agent', 't_school', 't_dictation', 't_oral', 'oral_word', 'oral_dialog', 'oral_scene'].includes(previewModalData.toolId) || (previewModalData.toolId === 't_learning_plan' && previewModalData.status === 'completed')
                   ? 'bg-transparent w-auto h-auto max-w-full max-h-full overflow-visible' 
                   : previewModalData.toolId === 't_test'
                     ? 'bg-white rounded-3xl shadow-2xl overflow-hidden w-full h-full max-w-4xl max-h-[90vh]'
@@ -2564,7 +2661,7 @@
         );
       }
 
-      const isTransparentTool = ['act_template', 'act_ai', 'act_lottery', 't_agent', 't_school', 't_dictation'].includes(tool.id) || 
+      const isTransparentTool = ['act_template', 'act_ai', 'act_lottery', 't_agent', 't_school', 't_dictation', 't_oral', 'oral_word', 'oral_dialog', 'oral_scene'].includes(tool.id) || 
                                 (tool.id === 't_learning_plan' && status === 'completed') ||
                                 (tool.id === 't_test' && mode === 'config');
 
@@ -2853,6 +2950,38 @@
                 return (
                   <div className="flex-1 flex flex-col justify-center items-center w-auto h-auto max-w-full max-h-[90vh] bg-transparent overflow-visible relative">
                     <img src="img/听写配置.png" alt="听写配置" className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-2xl" />
+                  </div>
+                );
+              }
+
+              if (tool.id === 't_oral' && mode === 'config') {
+                return (
+                  <div className="flex-1 flex flex-col justify-center items-center w-auto h-auto max-w-full max-h-[90vh] bg-transparent overflow-visible relative">
+                    <img src="img/单词评测配置.png" alt="口语训练配置" className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-2xl" />
+                  </div>
+                );
+              }
+
+              if (tool.id === 'oral_word' && mode === 'config') {
+                return (
+                  <div className="flex-1 flex flex-col justify-center items-center w-auto h-auto max-w-full max-h-[90vh] bg-transparent overflow-visible relative">
+                    <img src="img/单词评测配置.png" alt="单词评测配置" className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-2xl" />
+                  </div>
+                );
+              }
+
+              if (tool.id === 'oral_dialog' && mode === 'config') {
+                return (
+                  <div className="flex-1 flex flex-col justify-center items-center w-auto h-auto max-w-full max-h-[90vh] bg-transparent overflow-visible relative">
+                    <img src="img/对话评测配置.png" alt="对话评测配置" className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-2xl" />
+                  </div>
+                );
+              }
+
+              if (tool.id === 'oral_scene' && mode === 'config') {
+                return (
+                  <div className="flex-1 flex flex-col justify-center items-center w-auto h-auto max-w-full max-h-[90vh] bg-transparent overflow-visible relative">
+                    <img src="img/场景对话配置.png" alt="场景对话配置" className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-2xl" />
                   </div>
                 );
               }
@@ -4241,11 +4370,13 @@
 
     // ─── MAIN APP ────────────────────────────────────────────────────────────
     function App() {
+      const [isCatalogSwitchOpen, setIsCatalogSwitchOpen] = useState(false);
       const [viewMode, setViewMode] = useState('wizard'); // 'list' | 'wizard'
       const [currentStep, setCurrentStep] = useState(2);
       const [contentKey, setContentKey] = useState(0);
       const [catalogVersion, setCatalogVersion] = useState('bb');
       const [catalogGrade, setCatalogGrade] = useState('g6x');
+      const [catalogSubject, setCatalogSubject] = useState('chinese');
       const [expandedIds, setExpandedIds] = useState(() => buildExpandedDefaults('bb', 'g6x'));
       const initialCatalogPick = (() => {
         const t = getCatalogTree('bb', 'g6x');
@@ -4302,7 +4433,7 @@
           setCatalogParentGroupNode(first.parentGroup);
           setSelectedLessonLine(formatCatalogLessonLine(catalogGrade, first.unitTitle, first.node));
         }
-      }, [catalogVersion, catalogGrade]);
+      }, [catalogVersion, catalogGrade, catalogSubject]);
 
       // 监听来自弹窗的创建工具消息
       useEffect(() => {
@@ -4385,6 +4516,7 @@
           generationStatus={generationStatus}
           setGenerationStatus={setGenerationStatus}
           wizardMode={wizardMode}
+          catalogSubject={catalogSubject}
         />,
         <StepPostClass key={contentKey} wizardMode={wizardMode} />,
       ];
@@ -4448,12 +4580,114 @@
             <div className="mx-auto w-full max-w-[min(100%,1680px)] px-5 sm:px-6 md:px-8 lg:px-10 py-4 pb-8 flex flex-col lg:flex-row lg:items-stretch gap-4 md:gap-5 lg:gap-6">
               {/* 列1：课程目录 (始终显示在左侧) */}
               <div className="flex justify-center lg:justify-start lg:flex-shrink-0 lg:self-start w-[258px]">
-                <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden w-full">
+                <div className="bg-white border border-gray-200 rounded-xl shadow-sm w-full relative">
                   <img 
-                    src="img/目录.png" 
+                    src={
+                      catalogSubject === 'math' ? 'img/数学目录.png' :
+                      catalogSubject === 'english' ? 'img/英语目录.png' :
+                      'img/目录.png'
+                    } 
                     alt="课程目录" 
-                    className="w-full h-auto object-contain"
+                    className="w-full h-auto object-contain rounded-xl"
                   />
+                  
+                  {/* 切换教材按钮 */}
+                  <button
+                    className="absolute top-8 right-5 p-1.5 bg-white/60 hover:bg-white rounded-md shadow-sm border border-transparent hover:border-gray-200 text-gray-500 hover:text-blue-500 transition-all z-10 flex items-center justify-center group"
+                    onClick={() => setIsCatalogSwitchOpen(!isCatalogSwitchOpen)}
+                    title="切换教材与学科"
+                  >
+                    <Icons.MENU className="w-4 h-4" />
+                  </button>
+
+                  {/* 切换教材下拉弹窗 */}
+                  {isCatalogSwitchOpen && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center animate-in fade-in duration-300">
+                      <div className="w-[400px] bg-white rounded-3xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between mb-6">
+                          <span className="text-lg font-bold text-gray-800">切换教材与学科</span>
+                          <button 
+                            onClick={() => setIsCatalogSwitchOpen(false)}
+                            className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-xl hover:bg-gray-100"
+                          >
+                            <Icons.CLOSE className="w-5 h-5" />
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-5">
+                          {/* 学科 */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-700 ml-1">学科</label>
+                            <select
+                              value={catalogSubject}
+                              onChange={(e) => {
+                                const newSubject = e.target.value;
+                                setCatalogSubject(newSubject);
+                                // 切换学科时，如果当前是数学且已选了听写，或不是英语且已选了口语老师，需要清理
+                                if (newSubject === 'math') {
+                                  setSelectedTools(prev => prev.filter(t => t.id !== 't_dictation'));
+                                }
+                                if (newSubject !== 'english') {
+                                  setSelectedTools(prev => prev.filter(t => t.id !== 't_oral'));
+                                }
+                              }}
+                              className="w-full h-11 px-4 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 text-gray-700 cursor-pointer transition-all outline-none appearance-none font-medium"
+                              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%239CA3AF\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.25rem' }}
+                            >
+                              {SUBJECTS.map((s) => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* 教材版本 */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-700 ml-1">教材版本</label>
+                            <select
+                              value={catalogVersion}
+                              onChange={(e) => setCatalogVersion(e.target.value)}
+                              className="w-full h-11 px-4 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 text-gray-700 cursor-pointer transition-all outline-none appearance-none font-medium"
+                              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%239CA3AF\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.25rem' }}
+                            >
+                              {TEXTBOOK_VERSIONS.map((v) => (
+                                <option key={v.id} value={v.id}>{v.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* 年级 */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold text-gray-700 ml-1">年级</label>
+                            <select
+                              value={catalogGrade}
+                              onChange={(e) => setCatalogGrade(e.target.value)}
+                              className="w-full h-11 px-4 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 text-gray-700 cursor-pointer transition-all outline-none appearance-none font-medium"
+                              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%239CA3AF\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.25rem' }}
+                            >
+                              {GRADE_VOLUMES.map((g) => (
+                                <option key={g.id} value={g.id}>{g.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="mt-8 flex gap-3">
+                          <button 
+                            onClick={() => setIsCatalogSwitchOpen(false)}
+                            className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-bold rounded-2xl transition-all active:scale-95"
+                          >
+                            取消
+                          </button>
+                          <button 
+                            onClick={() => setIsCatalogSwitchOpen(false)}
+                            className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-sm font-bold rounded-2xl transition-all shadow-lg shadow-blue-200 active:scale-95"
+                          >
+                            确定
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
