@@ -123,10 +123,10 @@
         { id: 't_agent', name: '智能体', icon: 'AI', color: 'from-indigo-500 to-indigo-600' },
         { id: 't_dictation', name: '听写', icon: 'DICTATION', color: 'from-pink-500 to-pink-600' },
         { 
-          id: 't_oral', name: '口语老师', icon: 'TEACHER', color: 'from-indigo-500 to-indigo-600',
+          id: 't_oral', name: '口语训练', icon: 'TEACHER', color: 'from-indigo-500 to-indigo-600',
           options: [
-            { subId: 'oral_word', name: '单词评测' },
-            { subId: 'oral_dialog', name: '对话评测' },
+            { subId: 'oral_word', name: '口语训练' },
+            { subId: 'oral_dialog', name: '对话测评' },
             { subId: 'oral_corpus', name: '语料生成' },
             { subId: 'oral_scene', name: '场景对话' }
           ]
@@ -219,6 +219,26 @@
           effect: "持续挑战将纳入综合素养评价加分",
         },
       ],
+    };
+
+    // ─── AI 额度常量 ─────────────────────────────────────────────────────────
+    const CREDIT_CONFIG = {
+      total: 200,
+      tools: {
+        't_lesson_plan': 10,
+        't_learning_plan': 8,
+        't_ppt': 12,
+        'act_template': 6,
+        'act_ai': 15,
+        'act_lottery': 5,
+        't_agent': 14,
+        't_dictation': 7,
+        'oral_word': 8,
+        'oral_dialog': 10,
+        'oral_corpus': 9,
+        'oral_scene': 12,
+        't_test': 8,
+      }
     };
 
     // ─── 课程目录（Mock）：按「教材版本 + 年级册别」切换 ───────────────────────
@@ -1581,6 +1601,14 @@
           window.open('img/智能体配置.png', '_blank');
           return;
         }
+        if (originalToolId === 'agent_config' && mode === 'config') {
+          window.open('img/智能体配置.png', '_blank');
+          return;
+        }
+        if (originalToolId === 'agent_select' && mode === 'select') {
+          window.open('img/智能体预览.png', '_blank');
+          return;
+        }
         if (originalToolId === 't_dictation') {
           if (mode === 'config') {
             setPreviewModalData({
@@ -1652,66 +1680,57 @@
                     {
                       id: 't_lesson_plan', label: '添加教案', icon: 'DOC', color: 'from-cyan-500 to-cyan-600',
                       options: [
-                        { subId: 'lp_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'lp_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                        { subId: 'lp_config', name: 'AI生成', mode: 'config', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
                         { subId: 'lp_upload', name: '本地上传', mode: 'upload', icon: <Icons.UPLOAD className="w-3.5 h-3.5" /> },
                       ]
                     },
                     {
                       id: 't_learning_plan', label: '添加学案', icon: 'EDIT', color: 'from-teal-500 to-teal-600',
                       options: [
-                        { subId: 'lrp_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'lrp_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                        { subId: 'lrp_config', name: 'AI生成', mode: 'config', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
                         { subId: 'lrp_upload', name: '本地上传', mode: 'upload', icon: <Icons.UPLOAD className="w-3.5 h-3.5" /> },
                       ]
                     },
                     {
                       id: 't_ppt', label: '添加课件', icon: 'PPT', color: 'from-blue-500 to-blue-600',
                       options: [
-                        { subId: 'ppt_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'ppt_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                        { subId: 'ppt_config', name: 'AI生成', mode: 'config', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
                         { subId: 'ppt_upload', name: '本地上传', mode: 'upload', icon: <Icons.UPLOAD className="w-3.5 h-3.5" /> },
                       ]
                     },
                     {
                       id: 't_activity', label: '添加活动', icon: 'GAME', color: 'from-purple-500 to-purple-600',
                       options: [
-                        { subId: 'act_template', name: '模板活动', icon: <Icons.GRID className="w-3.5 h-3.5" /> },
-                        { subId: 'act_ai', name: 'AI活动', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'act_lottery', name: '趣味抽奖', icon: <Icons.GIFT className="w-3.5 h-3.5" /> }
+                        { subId: 'act_template', name: '模板活动', mode: 'config', icon: <Icons.GRID className="w-3.5 h-3.5" /> },
+                        { subId: 'act_ai', name: 'AI活动', mode: 'config', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
+                        { subId: 'act_lottery', name: '趣味抽奖', mode: 'config', icon: <Icons.GIFT className="w-3.5 h-3.5" /> }
                       ]
                     },
                     {
                       id: 't_agent', label: '添加智能体', icon: 'AI', color: 'from-indigo-500 to-indigo-600',
                       options: [
-                        { subId: 'agent_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'agent_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                        { subId: 'agent_config', name: '创建智能体', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                        { subId: 'agent_select', name: '选择官方智能体', mode: 'select', icon: <Icons.LAYERS className="w-3.5 h-3.5" /> },
                       ]
                     },
                     {
                       id: 't_dictation', label: '添加听写', icon: 'DICTATION', color: 'from-pink-500 to-pink-600',
                       hidden: catalogSubject === 'math',
-                      options: [
-                        { subId: 'dict_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'dict_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
-                      ]
+                      action: () => handleAddToolWithMode('t_dictation', 'config')
                     },
                     {
                       id: 't_oral', label: '口语训练', icon: 'TEACHER', color: 'from-indigo-500 to-indigo-600',
                       hidden: catalogSubject !== 'english',
                       options: [
-                        { subId: 'oral_word', name: '单词评测' },
-                        { subId: 'oral_dialog', name: '对话评测' },
-                        { subId: 'oral_corpus', name: '语料生成' },
-                        { subId: 'oral_scene', name: '场景对话' }
+                        { subId: 'oral_word', name: '口语训练', mode: 'config' },
+                        { subId: 'oral_dialog', name: '对话评测', mode: 'config' },
+                        { subId: 'oral_corpus', name: '语料生成', mode: 'new_tab' },
+                        { subId: 'oral_scene', name: '场景对话', mode: 'config' }
                       ]
                     },
                     {
                       id: 't_test', label: '添加随堂测', icon: 'TEST', color: 'from-emerald-500 to-emerald-600',
-                      options: [
-                        { subId: 'test_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'test_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
-                      ]
+                      action: () => handleAddToolWithMode('t_test', 'config')
                     },
                     { id: 't_school', label: '添加校本资源', icon: 'DOCS', color: 'from-orange-500 to-orange-600', action: () => { setPreviewModalData({ toolId: 't_school', status: 'completed' }); setOpenDropdown(null); } },
                   ].filter(item => !item.hidden).map(item => {
@@ -1776,40 +1795,29 @@
                     {
                       id: 't_lesson_plan',
                       options: [
-                        { subId: 'lp_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'lp_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                        { subId: 'lp_config', name: 'AI生成', mode: 'config', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
                         { subId: 'lp_upload', name: '本地上传', mode: 'upload', icon: <Icons.UPLOAD className="w-3.5 h-3.5" /> },
                       ]
                     },
                     {
                       id: 't_learning_plan',
                       options: [
-                        { subId: 'lrp_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'lrp_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                        { subId: 'lrp_config', name: 'AI生成', mode: 'config', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
                         { subId: 'lrp_upload', name: '本地上传', mode: 'upload', icon: <Icons.UPLOAD className="w-3.5 h-3.5" /> },
                       ]
                     },
                     {
                       id: 't_ppt',
                       options: [
-                        { subId: 'ppt_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'ppt_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                        { subId: 'ppt_config', name: 'AI生成', mode: 'config', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
                         { subId: 'ppt_upload', name: '本地上传', mode: 'upload', icon: <Icons.UPLOAD className="w-3.5 h-3.5" /> },
                       ]
                     },
                     {
                       id: 't_agent',
                       options: [
-                        { subId: 'agent_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'agent_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
-                      ]
-                    },
-                    {
-                      id: 't_dictation',
-                      hidden: catalogSubject === 'math',
-                      options: [
-                        { subId: 'dict_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'dict_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                        { subId: 'agent_config', name: '创建智能体', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
+                        { subId: 'agent_select', name: '选择官方智能体', mode: 'select', icon: <Icons.LAYERS className="w-3.5 h-3.5" /> },
                       ]
                     },
                     {
@@ -1817,36 +1825,17 @@
                       hidden: catalogSubject !== 'english',
                       options: [
                         { 
-                          subId: 'oral_word', name: '单词评测', icon: <Icons.MIC className="w-3.5 h-3.5" />,
-                          subOptions: [
-                            { name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                            { name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> }
-                          ]
+                          subId: 'oral_word', name: '口语训练', mode: 'config', icon: <Icons.MIC className="w-3.5 h-3.5" />
                         },
                         { 
-                          subId: 'oral_dialog', name: '对话评测', icon: <Icons.MIC className="w-3.5 h-3.5" />,
-                          subOptions: [
-                            { name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                            { name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> }
-                          ]
+                          subId: 'oral_dialog', name: '对话评测', mode: 'config', icon: <Icons.MIC className="w-3.5 h-3.5" />
                         },
                         { 
                           subId: 'oral_corpus', name: '语料生成', mode: 'new_tab', icon: <Icons.DOCS className="w-3.5 h-3.5" />
                         },
                         { 
-                          subId: 'oral_scene', name: '场景对话', icon: <Icons.MIC className="w-3.5 h-3.5" />,
-                          subOptions: [
-                            { name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                            { name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> }
-                          ]
+                          subId: 'oral_scene', name: '场景对话', mode: 'config', icon: <Icons.MIC className="w-3.5 h-3.5" />
                         }
-                      ]
-                    },
-                    {
-                      id: 't_test',
-                      options: [
-                        { subId: 'test_ai', name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                        { subId: 'test_config', name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> },
                       ]
                     },
                     {
@@ -1855,29 +1844,20 @@
                         { 
                           subId: 'act_template', 
                           name: '模板活动', 
-                          icon: <Icons.GRID className="w-3.5 h-3.5" />,
-                          subOptions: [
-                            { name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                            { name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> }
-                          ]
+                          mode: 'config',
+                          icon: <Icons.GRID className="w-3.5 h-3.5" />
                         },
                         { 
                           subId: 'act_ai', 
                           name: 'AI活动', 
-                          icon: <Icons.SPARKLE className="w-3.5 h-3.5" />,
-                          subOptions: [
-                            { name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                            { name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> }
-                          ]
+                          mode: 'config',
+                          icon: <Icons.SPARKLE className="w-3.5 h-3.5" />
                         },
                         { 
                           subId: 'act_lottery', 
                           name: '趣味抽奖', 
-                          icon: <Icons.GIFT className="w-3.5 h-3.5" />,
-                          subOptions: [
-                            { name: 'AI生成', mode: 'ai', icon: <Icons.SPARKLE className="w-3.5 h-3.5" /> },
-                            { name: '手动配置', mode: 'config', icon: <Icons.EDIT className="w-3.5 h-3.5" /> }
-                          ]
+                          mode: 'config',
+                          icon: <Icons.GIFT className="w-3.5 h-3.5" />
                         }
                       ]
                     },
@@ -1906,8 +1886,8 @@
                             onClick={() => {
                               if (opt.subOptions) return; // 有二级菜单的点击不触发
                               if (openDropdown.startsWith('t_')) {
-                                if (openDropdown === 't_activity') {
-                                  toggleTool(opt.subId);
+                                if (openDropdown === 't_activity' || openDropdown === 't_oral') {
+                                  handleAddToolWithMode(opt.subId, opt.mode || 'config');
                                 } else {
                                   handleAddToolWithMode(openDropdown, opt.mode);
                                 }
@@ -2294,7 +2274,11 @@
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                       {MOCK_DATA.inClassTools.flatMap(t => {
                         if (t.id === 't_oral') {
-                          return [{ id: t.id, subId: t.id, name: t.name, parentName: null, icon: t.icon, color: t.color }];
+                          return [
+                            { id: t.id, subId: t.id, name: t.name, parentName: null, icon: t.icon, color: t.color },
+                            { id: t.id, subId: 'oral_dialog', name: '对话测评', parentName: null, icon: t.icon, color: t.color },
+                            { id: t.id, subId: 'oral_scene', name: '场景对话', parentName: null, icon: t.icon, color: t.color }
+                          ];
                         }
                         return t.options ? t.options.map(o => ({...o, parentName: t.name, icon: t.icon, color: t.color})) 
                                   : [{ id: t.id, subId: t.id, name: t.name, parentName: null, icon: t.icon, color: t.color }];
@@ -2303,12 +2287,13 @@
                         if (tool.subId === 'dict_ai' || tool.subId === 'dict_config') {
                           return catalogSubject !== 'math';
                         }
-                        if (tool.subId === 't_oral') {
+                        if (tool.id === 't_oral') {
                           return catalogSubject === 'english';
                         }
                         return true;
                       }).map(tool => {
                         const isSelected = modalSelectedTools.includes(tool.subId);
+                        const credit = CREDIT_CONFIG.tools[tool.subId] || 0;
                         return (
                           <div
                             key={tool.subId}
@@ -2325,6 +2310,12 @@
                                 : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                             }`}
                           >
+                            <div className={`absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-0.5 ${
+                              isSelected ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'
+                            }`}>
+                              <Icons.ZAP className={`w-2.5 h-2.5 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
+                              {credit}
+                            </div>
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white bg-gradient-to-br ${tool.color} shadow-sm`}>
                               {React.createElement(Icons[tool.icon], { className: "w-5 h-5" })}
                             </div>
@@ -2345,8 +2336,7 @@
                 </div>
 
                 <div className="px-8 py-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center flex-shrink-0">
-                  <div className="text-sm text-gray-600">
-                    已选择 <span className="font-bold text-blue-600 mx-1">{modalSelectedTools.length}</span> 个工具
+                  <div className="flex items-center gap-6">
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -2355,20 +2345,32 @@
                     >
                       取消
                     </button>
-                    <button
-                      onClick={() => handlePlanSelectAndGenerate(modalSelectedTools)}
-                      disabled={modalSelectedTools.length === 0}
-                      className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-colors shadow-sm ${
-                        modalSelectedTools.length === 0
-                          ? 'bg-blue-100 text-blue-400 cursor-not-allowed shadow-none'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
-                      }`}
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      确认添加
-                    </button>
+                    <div className="flex flex-col items-center gap-1">
+                      <button
+                        onClick={() => handlePlanSelectAndGenerate(modalSelectedTools)}
+                        disabled={modalSelectedTools.length === 0}
+                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-colors shadow-sm ${
+                          modalSelectedTools.length === 0
+                            ? 'bg-blue-100 text-blue-400 cursor-not-allowed shadow-none'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        确认添加
+                        {modalSelectedTools.length > 0 && (
+                          <span className="ml-1 px-1.5 py-0.5 rounded-md bg-white/20 text-xs font-bold">
+                            -{modalSelectedTools.reduce((sum, id) => sum + (CREDIT_CONFIG.tools[id] || 0), 0)} 额度
+                          </span>
+                        )}
+                      </button>
+                      {modalSelectedTools.length > 0 && (
+                        <div className="text-xs text-gray-500">
+                          剩余额度 <span className="font-bold text-gray-700">{CREDIT_CONFIG.total - modalSelectedTools.reduce((sum, id) => sum + (CREDIT_CONFIG.tools[id] || 0), 0)}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2962,10 +2964,9 @@
                 );
               }
 
-              if (tool.id === 'oral_word' && mode === 'config') {
-                return (
+              if (tool.id === 'oral_word' && mode === 'config') {                return (
                   <div className="flex-1 flex flex-col justify-center items-center w-auto h-auto max-w-full max-h-[90vh] bg-transparent overflow-visible relative">
-                    <img src="img/单词评测配置.png" alt="单词评测配置" className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-2xl" />
+                    <img src="img/单词评测配置.png" alt="口语训练配置" className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-2xl" />
                   </div>
                 );
               }
@@ -4623,7 +4624,7 @@
                               onChange={(e) => {
                                 const newSubject = e.target.value;
                                 setCatalogSubject(newSubject);
-                                // 切换学科时，如果当前是数学且已选了听写，或不是英语且已选了口语老师，需要清理
+                                // 切换学科时，如果当前是数学且已选了听写，或不是英语且已选了口语训练，需要清理
                                 if (newSubject === 'math') {
                                   setSelectedTools(prev => prev.filter(t => t.id !== 't_dictation'));
                                 }
