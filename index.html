@@ -41,7 +41,7 @@
     @keyframes success-pop { 0%{transform:scale(0.8);opacity:0} 70%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
     .success-pop { animation: success-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
     @keyframes overlay-in { from{opacity:0} to{opacity:1} }
-    .overlay-in { animation: overlay-in 0.25s ease forwards; }
+    .overlay-in { animation: overlay-in 0.15s ease forwards; }
     ::-webkit-scrollbar { width:6px; }
     ::-webkit-scrollbar-track { background:#f1f5f9; border-radius:3px; }
     ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
@@ -1318,7 +1318,7 @@
     }
 
     // ─── STEP 2: 课中授课 ───────────────────────────────────────────────
-    function StepInClass({ selectedTools, setSelectedTools, wizardMode, onNextStep, generationStatus, setGenerationStatus, catalogSubject }) {
+    function StepInClass({ selectedTools, setSelectedTools, wizardMode, onNextStep, generationStatus, setGenerationStatus, catalogSubject, usedCredits, setUsedCredits }) {
       const planA = ['t_ppt', 't_test'];
       const planB = ['t_ppt', 'act_template', 'act_lottery', 't_test'];
       const [selectedPlan, setSelectedPlan] = useState(null);
@@ -1410,12 +1410,16 @@
       const handlePlanSelectAndGenerate = async (plan) => {
         setShowPlanModal(false);
         // 使用 instanceId，并标记为自动生成
-        const newTools = plan.map(id => ({ 
-          id, 
+        const newTools = plan.map(id => ({
+          id,
           instanceId: `${id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           autoGenerate: true
         }));
-        
+
+        // 计算本次消耗的额度并扣减
+        const consumedCredits = plan.reduce((sum, id) => sum + (CREDIT_CONFIG.tools[id] || 0), 0);
+        setUsedCredits(prev => prev + consumedCredits);
+
         const autoIds = newTools.map(t => t.instanceId);
 
         setGenerationStatus(prev => {
@@ -1424,13 +1428,48 @@
           return next;
         });
 
-        autoIds.forEach(id => {
+        // 互动授课方案必定失败的工具及原因
+        const alwaysFailTools = {
+          't_ppt': '用户额度不足',       // 课件
+          't_lesson_plan': '学校额度不足', // 教案
+          'act_template': '请重试'         // 模板活动
+        };
+
+        // 判断是否为互动授课方案（包含教案、学案、课件、AI活动、智能体、听写、抽奖等）
+        const interactivePlanIds = ['t_lesson_plan', 't_learning_plan', 't_ppt', 'act_template', 'act_ai', 't_agent', 't_test', 't_dictation', 'act_lottery'];
+        const isInteractivePlan = plan.length === 9 &&
+          plan.every(id => interactivePlanIds.includes(id)) &&
+          interactivePlanIds.every(id => plan.includes(id));
+
+        autoIds.forEach(instanceId => {
+          const toolId = newTools.find(t => t.instanceId === instanceId)?.id;
+          console.log('instanceId:', instanceId, 'toolId:', toolId, 'isInteractivePlan:', isInteractivePlan);
           const delay = Math.floor(Math.random() * 10000) + 5000; // 5~15s随机时间
           setTimeout(() => {
+            console.log('in setTimeout - instanceId:', instanceId, 'toolId:', toolId, 'isInteractivePlan:', isInteractivePlan);
             setGenerationStatus(prev => {
               const next = { ...prev };
-              if (next[id] === 'generating') {
-                next[id] = 'completed';
+              if (next[instanceId] === 'generating') {
+                // 互动授课方案中，课件、教案、模板活动必定失败
+                if (isInteractivePlan && alwaysFailTools[toolId]) {
+                  next[instanceId] = 'failed';
+                  next[`${instanceId}_failReason`] = alwaysFailTools[toolId];
+                } else {
+                  // 其他工具保持10%概率失败
+                  const shouldFail = Math.random() < 0.1;
+                  const failureReasons = [
+                    '用户额度不足',
+                    '学校额度不足',
+                    '请重试'
+                  ];
+                  const failureReason = shouldFail ? failureReasons[Math.floor(Math.random() * failureReasons.length)] : null;
+                  if (shouldFail) {
+                    next[instanceId] = 'failed';
+                    next[`${instanceId}_failReason`] = failureReason;
+                  } else {
+                    next[instanceId] = 'completed';
+                  }
+                }
               }
               return next;
             });
@@ -1441,12 +1480,31 @@
         setSelectedTools(nextSelected);
       };
 
-      const handleSingleGenerate = async (id, e) => {
+      const handleSingleGenerate = async (uniqueId, e) => {
         e.stopPropagation();
-        setGenerationStatus(prev => ({ ...prev, [id]: 'generating' }));
+        setGenerationStatus(prev => ({ ...prev, [uniqueId]: 'generating' }));
         const delay = Math.floor(Math.random() * 10000) + 5000;
+
+        // 10%概率生成失败
+        const shouldFail = Math.random() < 0.1;
+        const failureReasons = [
+          '用户额度不足',
+          '学校额度不足',
+          '请重试'
+        ];
+        const failureReason = shouldFail ? failureReasons[Math.floor(Math.random() * failureReasons.length)] : null;
+
         await new Promise(resolve => setTimeout(resolve, delay));
-        setGenerationStatus(prev => ({ ...prev, [id]: 'completed' }));
+        setGenerationStatus(prev => {
+          const next = { ...prev };
+          if (shouldFail) {
+            next[uniqueId] = 'failed';
+            next[`${uniqueId}_failReason`] = failureReason;
+          } else {
+            next[uniqueId] = 'completed';
+          }
+          return next;
+        });
       };
       const handleGenerateAll = async () => {
         if (selectedToolList.length === 0) {
@@ -1454,26 +1512,46 @@
           setModalSelectedTools([]);
           return;
         }
-        
+
         setIsGeneratingAll(true);
-        const toolsToGenerate = selectedTools.filter(tool => generationStatus[tool.instanceId] !== 'completed');
-        
+        const toolsToGenerate = selectedTools.filter(tool => generationStatus[tool.instanceId] !== 'completed' && generationStatus[tool.instanceId] !== 'failed');
+
         setGenerationStatus(prev => {
           const next = { ...prev };
           toolsToGenerate.forEach(tool => next[tool.instanceId] = 'generating');
           return next;
         });
 
+        // 失败原因配置
+        const failureReasons = [
+          '用户额度不足',
+          '学校额度不足',
+          '请重试'
+        ];
+
         await Promise.all(toolsToGenerate.map(tool => {
           const delay = Math.floor(Math.random() * 10000) + 5000;
           return new Promise(resolve => {
             setTimeout(() => {
-              setGenerationStatus(prev => ({ ...prev, [tool.instanceId]: 'completed' }));
+              // 10%概率生成失败
+              const shouldFail = Math.random() < 0.1;
+              const failureReason = shouldFail ? failureReasons[Math.floor(Math.random() * failureReasons.length)] : null;
+
+              setGenerationStatus(prev => {
+                const next = { ...prev };
+                if (shouldFail) {
+                  next[tool.instanceId] = 'failed';
+                  next[`${tool.instanceId}_failReason`] = failureReason;
+                } else {
+                  next[tool.instanceId] = 'completed';
+                }
+                return next;
+              });
               resolve();
             }, delay);
           });
         }));
-        
+
         setIsGeneratingAll(false);
       };
 
@@ -1491,8 +1569,28 @@
         if (id !== 't_school') {
             setGenerationStatus(prev => ({ ...prev, [instanceId]: 'generating' }));
             const delay = Math.floor(Math.random() * 10000) + 5000;
+
+            // 10%概率生成失败
+            const failureReasons = [
+              '用户额度不足',
+              '学校额度不足',
+              '请重试'
+            ];
+
             setTimeout(() => {
-                setGenerationStatus(prev => ({ ...prev, [instanceId]: 'completed' }));
+                const shouldFail = Math.random() < 0.1;
+                const failureReason = shouldFail ? failureReasons[Math.floor(Math.random() * failureReasons.length)] : null;
+
+                setGenerationStatus(prev => {
+                  const next = { ...prev };
+                  if (shouldFail) {
+                    next[instanceId] = 'failed';
+                    next[`${instanceId}_failReason`] = failureReason;
+                  } else {
+                    next[instanceId] = 'completed';
+                  }
+                  return next;
+                });
             }, delay);
         } else {
             setGenerationStatus(prev => ({ ...prev, [instanceId]: 'completed' }));
@@ -2029,17 +2127,31 @@
                         }
                       }}
                       className={`bg-white border rounded-xl p-4 shadow-sm transition-all flex flex-col relative overflow-hidden text-left min-h-[140px] ${
-                        status === 'generating' 
-                          ? 'border-blue-300 shadow-blue-100/50 cursor-wait' 
+                        status === 'generating'
+                          ? 'border-blue-300 shadow-blue-100/50 cursor-wait'
                           : status === 'completed'
                             ? 'border-gray-200 hover:shadow-md hover:border-blue-300 cursor-pointer group'
-                            : 'border-gray-200 opacity-90'
+                            : status === 'failed'
+                              ? 'border-red-300 bg-red-50/30'
+                              : 'border-gray-200 opacity-90'
                       }`}
                     >
                       {/* 右上角：生成中状态 */}
                       {status === 'generating' && (
                         <div className="absolute top-3 right-3 flex items-center gap-1 text-[11px] text-blue-500 bg-blue-50 px-2 py-1 rounded-full z-10">
                           <Icons.SPARKLE className="w-3 h-3 animate-spin" /> <span>生成中...</span>
+                        </div>
+                      )}
+
+                      {/* 右上角：生成失败状态 */}
+                      {status === 'failed' && (
+                        <div className="absolute top-3 right-3 flex items-center gap-1 text-[11px] text-red-500 z-10">
+                          <div className="flex items-center gap-1 bg-red-50 px-2 py-1 rounded-full">
+                            <Icons.CLOSE className="w-3 h-3" /> <span>生成失败</span>
+                          </div>
+                          <span className="bg-red-50 px-2 py-1 rounded-full whitespace-nowrap">
+                            {generationStatus[`${uniqueId}_failReason`] || '请重试'}
+                          </span>
                         </div>
                       )}
 
@@ -2088,12 +2200,14 @@
                         </div>
                       </div>
                       
-                      {/* 再往下：卡片名称 */}
-                      <div className="mt-3 mb-4">
-                        <h4 className="font-medium text-gray-800 text-[13px] leading-snug line-clamp-2" title={tool.parentName ? `${tool.parentName} · ${tool.name}` : tool.name}>
-                          {tool.parentName ? `${tool.parentName} · ` : ''}{tool.name}
-                        </h4>
-                      </div>
+                      {/* 再往下：卡片名称 - 仅生成成功后显示 */}
+                      {status === 'completed' && (
+                        <div className="mt-3 mb-4">
+                          <h4 className="font-medium text-gray-800 text-[13px] leading-snug line-clamp-2" title={tool.parentName ? `${tool.parentName} · ${tool.name}` : tool.name}>
+                            {tool.parentName ? `${tool.parentName} · ` : ''}{tool.name}
+                          </h4>
+                        </div>
+                      )}
                       
                       {/* 右下角：操作按钮 */}
                       <div className="mt-auto flex items-center justify-end gap-2 w-full">
@@ -2108,6 +2222,13 @@
                             title="更多操作"
                           >
                             <Icons.DOTS className="w-5 h-5" />
+                          </button>
+                        ) : status === 'failed' ? (
+                          <button
+                            onClick={(e) => handleSingleGenerate(uniqueId, e)}
+                            className="px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors border bg-white border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300"
+                          >
+                            <Icons.SPARKLE className="w-3 h-3" /> 重新生成
                           </button>
                         ) : (tool.id === 't_ppt' || tool.id === 't_lesson_plan' || tool.id === 't_learning_plan') ? (
                           <div className="flex gap-2 relative">
@@ -2346,30 +2467,40 @@
                       取消
                     </button>
                     <div className="flex flex-col items-center gap-1">
-                      <button
-                        onClick={() => handlePlanSelectAndGenerate(modalSelectedTools)}
-                        disabled={modalSelectedTools.length === 0}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-colors shadow-sm ${
-                          modalSelectedTools.length === 0
-                            ? 'bg-blue-100 text-blue-400 cursor-not-allowed shadow-none'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white'
-                        }`}
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        确认添加
-                        {modalSelectedTools.length > 0 && (
-                          <span className="ml-1 px-1.5 py-0.5 rounded-md bg-white/20 text-xs font-bold">
-                            -{modalSelectedTools.reduce((sum, id) => sum + (CREDIT_CONFIG.tools[id] || 0), 0)} 额度
-                          </span>
-                        )}
-                      </button>
-                      {modalSelectedTools.length > 0 && (
-                        <div className="text-xs text-gray-500">
-                          剩余额度 <span className="font-bold text-gray-700">{CREDIT_CONFIG.total - modalSelectedTools.reduce((sum, id) => sum + (CREDIT_CONFIG.tools[id] || 0), 0)}</span>
-                        </div>
-                      )}
+                      {(() => {
+                        const remainingCredits = CREDIT_CONFIG.total - usedCredits;
+                        const willConsumeCredits = modalSelectedTools.reduce((sum, id) => sum + (CREDIT_CONFIG.tools[id] || 0), 0);
+                        const isDisabled = modalSelectedTools.length === 0 || willConsumeCredits > remainingCredits;
+                        return (
+                          <>
+                            <button
+                              onClick={() => handlePlanSelectAndGenerate(modalSelectedTools)}
+                              disabled={isDisabled}
+                              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-colors shadow-sm ${
+                                isDisabled
+                                  ? 'bg-blue-100 text-blue-400 cursor-not-allowed shadow-none'
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                              }`}
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              确认添加
+                              {modalSelectedTools.length > 0 && (
+                                <span className="ml-1 px-1.5 py-0.5 rounded-md bg-white/20 text-xs font-bold">
+                                  -{willConsumeCredits} 额度
+                                </span>
+                              )}
+                            </button>
+                            {modalSelectedTools.length > 0 && (
+                              <div className={`text-xs ${willConsumeCredits > remainingCredits ? 'text-red-500' : 'text-gray-500'}`}>
+                                剩余额度 <span className="font-bold">{remainingCredits}</span>
+                                {willConsumeCredits > remainingCredits && <span className="ml-1">(额度不足)</span>}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -3561,7 +3692,7 @@
                     <div className="absolute inset-0 rounded-full border-4 border-blue-100" />
                     <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-transparent border-b-transparent border-l-transparent spin-dot" />
                     <div className="absolute inset-2 rounded-full border-4 border-emerald-100" />
-                    <div className="absolute inset-2 rounded-full border-4 border-t-emerald-500 border-r-transparent border-b-transparent border-l-transparent spin-dot" style={{ animationDelay: '0.2s', animationDuration: '1.2s' }} />
+                    <div className="absolute inset-2 rounded-full border-4 border-t-emerald-500 border-r-transparent border-b-transparent border-l-transparent spin-dot" style={{ animationDelay: '0.1s', animationDuration: '1.2s' }} />
                   </div>
                   <p className="text-blue-600 font-medium mb-1">AI 正在研读课标生成中...</p>
                   <p className="text-gray-400 text-sm">正在分析教材结构 &amp; 知识点关联</p>
@@ -4396,10 +4527,14 @@
       const [stepBarCollapsed, setStepBarCollapsed] = useState(false);
       const [selectedTools, setSelectedTools] = useState(() => {
         const presetTools = ['t_ppt', 't_test'];
-        return presetTools.map(id => ({ 
-          id, 
-          instanceId: `${id}_init_${Math.random().toString(36).substr(2, 9)}` 
+        return presetTools.map(id => ({
+          id,
+          instanceId: `${id}_init_${Math.random().toString(36).substr(2, 9)}`
         }));
+      });
+      const [usedCredits, setUsedCredits] = useState(() => {
+        const presetTools = ['t_ppt', 't_test'];
+        return presetTools.reduce((sum, id) => sum + (CREDIT_CONFIG.tools[id] || 0), 0);
       });
       const [generationStatus, setGenerationStatus] = useState({});
       // Adjust generationStatus initialization to match the instanceIds
@@ -4518,6 +4653,8 @@
           setGenerationStatus={setGenerationStatus}
           wizardMode={wizardMode}
           catalogSubject={catalogSubject}
+          usedCredits={usedCredits}
+          setUsedCredits={setUsedCredits}
         />,
         <StepPostClass key={contentKey} wizardMode={wizardMode} />,
       ];
